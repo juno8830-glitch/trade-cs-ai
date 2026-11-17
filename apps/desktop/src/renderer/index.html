@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>客服回复助手 — 外贸客服起草工具</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- 一套线性图标，16px / 1.5 描边 / 跟随文字颜色。离线可用，不依赖 CDN。 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H7l-4 9z"/><path d="M3 18h18l-2-6H5z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.2"/><path d="M20 4v7h-7"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/><path d="M19 14v5H5V5h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7v.5M12 17h.01"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h.01M14 13h.01M18 13h.01M8 17h8"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-8 8H8l-5 2 1.5-4A8 8 0 1 1 20 12z"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4v16M8 4v16M12 4v16"/><path d="m16 5 4-1 2.5 15-4 1z"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 11h6M9 15h6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5M12 17h.01"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">助</span>
+      <div>
+        <div class="title">客服回复助手</div>
+        <div class="subtitle">本机起草 · 人工核对 · 人工发送</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="statusBadge" class="badge badge-wait" title="这里显示第三方 AI（智谱 / 阿里云 / OpenAI）是否连上；点一下可重新检查。旁边「连接器」说的是 WorkBuddy，不是同一件事。">正在连接</span>
+      <button id="btnCheckWB" class="wb-badge" title="这表示 WorkBuddy 能调用本程序查资料，不代表本窗口的回复由 WorkBuddy 生成。点一下看详细检查。">连接器：检查中…</button>
+      <button id="btnRestart" class="btn-restart" title="重新加载窗口、重新连接后台服务；后台服务没开时会自动补启。需点两次确认，避免误触。">重启程序</button>
+      <span id="pushDot" class="push-dot hidden" title="有客户新消息等着回复">●</span>
+      <button id="hotkeyBadge" class="hotkey-badge hidden" title="当前生效的唤起快捷键；点一下重新尝试 Ctrl+Shift+X">快捷键 X</button>
+      <button id="btnHelp" class="icon-btn help-btn" title="鼠标悬停看使用说明；点一下打开完整说明书" aria-label="使用说明"><svg class="i"><use href="#i-help"/></svg></button>
+      <button id="btnSettings" class="icon-btn" title="连接设置（一般不用改）" aria-label="连接设置"><svg class="i"><use href="#i-settings"/></svg></button>
+      <button id="btnHide" class="icon-btn" title="隐藏窗口" aria-label="隐藏窗口"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+  </header>
+
+  <!-- 所有「怎么用」的注解都收在这一个按钮里：悬停显示、移开自动消失。
+       元素 id 全部保留，原来绑定在这些按钮上的功能一点没丢。 -->
+  <div id="helpPopover" class="help-popover hidden">
+    <div class="help-title">使用说明 <span>悬停显示 · 移开收起 · 点顶部图标看完整说明书</span></div>
+
+    <div class="help-block">
+      <div class="help-label">快速上手</div>
+      <div id="guideBar" class="guide">
+        <div class="guide-head">
+          <b>四步上手</b>
+          <button id="btnHideGuide" class="guide-close" title="收起这一段">×</button>
+        </div>
+        <div class="guide-steps">
+          <span>粘贴客户消息；带图就直接 Ctrl+V 贴进去 / 拖进输入框</span>
+          <span>点「生成回复稿」，图片会一起进聊天记录</span>
+          <span>核对<span class="sensitive">红色</span>的价格 / 交期，看右侧「中文对照」里的资料来源</span>
+          <span>勾选确认 → 点「复制去发送」→ 自己粘贴到微信</span>
+        </div>
+        <div class="guide-note">价格、交期这类内容必须人工核对；程序永远不会替你把消息发给客户。</div>
+      </div>
+    </div>
+
+    <div class="help-block">
+      <div class="help-label">连接状态与回复稿</div>
+      <div id="wbNotice" class="wb-notice">
+        <button id="btnHideWBNotice" class="wb-notice-close" title="收起这一段">×</button>
+        <div class="wb-notice-title">连上 WorkBuddy 了，回复稿为什么还是模板</div>
+        <div class="wb-notice-text">
+          绿灯说的是 <b>WorkBuddy 能查你本机的报价表</b>，<b>不是</b>「这个窗口的回复由 WorkBuddy 的 AI 写」。
+          这个窗口点「生成回复稿」，用的是<b>本机模板助手</b>（看顶部「可用 N / 6 个 AI」：没填密钥时只有模板可用，回复稿下方会写「内置模板助手」），所以措辞会比较固定。
+          想让 WorkBuddy 用它自己的脑子帮你写，点下面的按钮，把指令粘到 WorkBuddy 对话里就行。
+        </div>
+        <button id="btnToWorkBuddy" class="btn btn-wb"><svg class="i"><use href="#i-external"/></svg>复制指令给 WorkBuddy</button>
+      </div>
+    </div>
+
+    <div class="help-block">
+      <div class="help-label">模块说明</div>
+      <div id="tipThread" class="help-tip"><b>客户消息 / 会话记录</b>：本次会话粘贴过的客户原话、企业微信推来的新消息都在左侧这里，最新的排最上面；<b>客户原话的中文翻译在窗口右侧「中文对照」栏</b>，生成回复稿时自动翻好，也可点「翻译这句」手动翻。在客户名称里选老客户会把他的历史聊天一起载进来（灰底虚线是历史，可点「只看本次会话」清掉）。区域可以拖动底边调高，也可以点标题右侧的 ▾ 折叠。</div>
+      <div id="tipCustomer" class="help-tip"><b>客户信息</b>：点顶部一行摘要展开。新增「客户来源」（INS / 视频号 / Facebook / 客户推荐 / 其他 / 自定义）；勾「保存客户资料与聊天记录」后，客户资料和之后的每条聊天都会写进 <b>data/客户档案.xlsx</b>（客户总览 + 聊天记录 + 阅读说明三张表），点「打开档案」可直接打开。客户名称输入框支持<b>搜索老客户</b>，选中后自动填回资料并显示之前的聊天。展开区限高、内部滚动，不会挤压下面的模块。</div>
+      <div id="tipKb" class="help-tip kb-tip">
+        <b>这一块平时收起</b>：点顶部工具条的「我的资料库」才从右侧展开，用完再点一下收起。
+        把报价表、图片、证书直接放进「我的资料库」文件夹，<b>文件名不用改</b>。点一下「整理资料」，
+        程序会读出表里的型号、价格、货期，<b>之后问报价才会真的去你的表里查</b>。
+        你的原始文件不会被改名、移动或删除。
+      </div>
+      <div id="tipDraft" class="help-tip draft-tip">
+        左侧白色区域是<b>发给客户的外文正文</b>；<b>中文翻译、中文说明和资料来源统一放在窗口右侧的「中文对照」栏</b>，只给你看，点「只复制正文」时不会带上它们。想把左边拉得更宽，可点右栏标题的「收起」。
+        客户带图询价并命中型号后，正文下面还会出现<b>随稿产品图</b>，可逐张复制 / 另存为原图。
+      </div>
+      <div id="tipImages" class="help-tip">
+        <b>聊天框里的图片（进 + 出）</b>：客户发图时，直接在输入框按 <b>Ctrl+V</b> 粘贴截图、把图片文件<b>拖进输入框</b>，
+        或点「加图片」一次选多张（最多 4 张）。图片会以缩略图挂在输入框上，点「生成回复稿」后连同文字
+        一起变成上面会话记录里的一条消息，点图可放大。命中型号后，回复稿下方会列出资料库里的真实产品图，
+        可「复制图片」直接粘到微信、「另存为」保存原图，或一键「放进聊天记录」。鼠标停在「加图片」上可预览整个资料库。
+      </div>
+      <div id="tipLearn" class="help-tip learn-tip">
+        <b>这一块平时收起</b>：点顶部工具条的「话术学习」才从右侧展开。点 <b>「记成功」</b> 会写进成功案例库；
+        点 <b>「记失败」</b> 会变成「下次别这么写」的经验。程序会自动重新归纳话术，
+        <b>在 WorkBuddy 里说「帮我优化话术」</b>它还会替你写出改进建议并写回，
+        下一次起草回复稿就自动生效。客户消息和回复稿只存在这台电脑里。
+      </div>
+    </div>
+
+    <div class="help-block">
+      <div class="help-label">复制、发送与快捷键</div>
+      <div class="foot-note">复制按钮只取上面的外文正文，中文翻译和注解不会进剪贴板；请自己粘贴到微信 / 企业微信发送，程序不会自动发消息。顶部「重启程序」在窗口卡住、改完配置或重新连接时用。在输入框里按 Ctrl+Enter 可以直接生成回复稿。</div>
+      <div class="shortcut-note"><b>桌面窗口版快捷键</b>：<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> 唤起 / 隐藏窗口 · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> 抓取剪贴板到输入框。窗口<b>常驻显示</b>，鼠标点别处不会自动消失，只有再按快捷键（或点右上角关闭）才隐藏。X 被别的程序占用时会自动换键，顶栏快捷键徽标和托盘菜单会写明当前生效的键；点徽标可重新抢回 X。</div>
+      <div id="hotkeyLive" class="hotkey-live"></div>
+    </div>
+  </div>
+
+  <!-- 每个模块标题旁的小气泡共用这个容器 -->
+  <div id="tipPopover" class="tip-popover hidden"></div>
+
+  <div id="settings" class="settings hidden">
+    <label>服务地址（一般不用改）<input id="gatewayUrlInput" type="text" spellcheck="false" /></label>
+    <label>连接口令（一般不用改）<input id="tokenInput" type="password" spellcheck="false" /></label>
+    <div class="settings-actions">
+      <button id="btnSaveSettings" class="btn btn-sm">保存并重新连接</button>
+      <span class="hint">只有浏览器版需要填；桌面窗口版由程序自动保管，界面上看不到口令</span>
+    </div>
+  </div>
+
+  <!-- 客户信息：默认收成一行摘要，点一下才展开；展开区限高内部滚动，不挤压下面的模块 -->
+  <button id="contextSummary" class="context-summary" type="button" title="点击展开 / 收起客户信息">
+    <span class="cs-label">客户信息</span>
+    <span id="contextSummaryText" class="cs-value">议价 / 谈判 · 墨西哥 · Carlos · 西班牙语（墨西哥）</span>
+    <span id="contextSaveTag" class="cs-tag hidden">已存档</span>
+    <span class="cs-caret">▾</span>
+  </button>
+  <div id="contextBar" class="context-bar collapsed">
+    <div class="context-grid">
+      <label title="选哪个 AI 来起草。选「自动选择」最省事，程序会挑一个当前能用的。">谁来回信<select id="agentSelect"><option value="auto">自动选择（推荐）</option></select></label>
+      <label title="客户现在谈到哪一步了，程序会据此换语气、换 AI">客户阶段<select id="stageSelect">
+        <option value="promote">开发新客户</option>
+        <option value="negotiate" selected>议价 / 谈判</option>
+        <option value="followup">跟进 / 催单</option>
+        <option value="complex_quote">复杂报价</option>
+        <option value="draft_only">只写个草稿</option>
+      </select></label>
+      <label title="客户所在国家，用来匹配成功案例">客户国家<select id="countryInput">
+        <option value="MX" selected>墨西哥</option>
+        <option value="US">美国</option>
+        <option value="BR">巴西</option>
+        <option value="ES">西班牙</option>
+        <option value="DE">德国</option>
+        <option value="OTHER">其他 / 不填</option>
+      </select></label>
+      <label title="客户名字，也是存档名：在这里输入可以从老客户里搜索，点候选即可载入他的资料和历史聊天；直接输入新名字就是新客户">客户名称 / 可搜索<input id="nameInput" value="Carlos" autocomplete="off" spellcheck="false" placeholder="输入搜索老客户，或直接新建" /></label>
+      <label title="回复稿用什么语言写">回复语种<select id="localeSelect">
+        <option value="es-MX" selected>西班牙语（墨西哥）</option>
+        <option value="en">英语</option>
+        <option value="en-US">英语（美国）</option>
+        <option value="pt-BR">葡萄牙语（巴西）</option>
+      </select></label>
+      <label title="这个客户是从哪里来的，会记进客户档案">客户来源<select id="sourceSelect">
+        <option value="" selected>— 未选择 —</option>
+        <option value="INS">INS</option>
+        <option value="视频号">视频号</option>
+        <option value="Facebook">Facebook</option>
+        <option value="客户推荐">客户推荐</option>
+        <option value="其他">其他</option>
+        <option value="自定义">自定义…</option>
+      </select></label>
+      <label id="sourceCustomWrap" class="hidden" title="自己填来源，例如「广交会名片」，以后好找">自定义来源<input id="sourceCustomInput" placeholder="例如：广交会名片" /></label>
+    </div>
+    <div class="context-foot">
+      <label class="ctx-save" title="勾上后自动把客户资料与之后的聊天记录写进 data/客户档案.xlsx"><input type="checkbox" id="saveCustomerBox" /> 保存客户资料与聊天记录</label>
+      <button id="btnOpenCustomers" class="btn btn-sm" type="button" title="打开 data/客户档案.xlsx 查看全部客户与聊天流水"><svg class="i"><use href="#i-file"/></svg>打开档案</button>
+      <span id="customerMsg" class="ctx-msg"></span>
+    </div>
+    <!-- 悬浮候选：用 fixed 定位，不受展开区滚动裁剪，也不占任何布局高度 -->
+    <div id="customerPicker" class="customer-picker hidden"></div>
+  </div>
+
+  <!-- 资料库与话术学习：平时只留这一行按钮，点一下才从右侧滑出抽屉，不占阅读区高度 -->
+  <div class="drawer-bar">
+    <span class="db-label">工作台</span>
+    <button id="btnDrawerKb" class="db-btn" type="button" title="点一下展开我的资料库；再点一次收起"><svg class="i"><use href="#i-library"/></svg>我的资料库</button>
+    <span id="kbSummary" class="stream-state db-stat">检查中…</span>
+    <button id="btnDrawerLearn" class="db-btn" type="button" title="点一下展开话术学习；再点一次收起"><svg class="i"><use href="#i-list"/></svg>话术学习</button>
+    <span id="learnSummary" class="stream-state db-stat">还没学到案例</span>
+    <span class="db-spacer"></span>
+    <span class="db-hint">点一下才展开 · 用完再点收起</span>
+  </div>
+
+  <main class="workspace">
+    <!-- 左：客户原话与外文回复稿，占满主要宽度 -->
+    <div class="work-main">
+    <div id="offlineBanner" class="banner hidden">后台服务没连上，已经自动换成自带的模板话术（不会编造价格，业务流程不中断）</div>
+
+    <section class="panel thread-panel" data-panel="thread" data-tip="tipThread">
+      <div class="panel-head">
+        <span><svg class="i"><use href="#i-message"/></svg>客户消息 / 会话记录</span>
+        <span class="head-right">
+          <span id="threadCount" class="stream-state">0 条</span>
+          <button class="tip-btn" type="button" title="这块是干什么的">?</button>
+          <button class="fold-btn" type="button" title="折叠 / 展开这个模块">▾</button>
+        </span>
+      </div>
+      <div id="historyBar" class="history-bar hidden">
+        <span id="historyBarText"></span>
+        <button id="btnClearHistory" class="link-btn" type="button">只看本次会话</button>
+      </div>
+      <div id="thread" class="thread">
+        <div class="thread-empty">还没有会话记录。把客户消息粘贴到下面，点「生成回复稿」就会出现在这里。</div>
+      </div>
+    </section>
+
+    <section class="panel draft-panel" data-panel="draft" data-tip="tipDraft">
+      <div class="panel-head">
+        <span>回复稿</span>
+        <span class="head-right">
+          <span id="streamState" class="stream-state">等待生成</span>
+          <button class="tip-btn" type="button" title="这块是干什么的">?</button>
+          <button class="fold-btn" type="button" title="折叠 / 展开这个模块">▾</button>
+        </span>
+      </div>
+      <div id="draft" class="draft"><span class="placeholder">还没有回复稿，先粘贴客户消息再点「生成回复稿」</span></div>
+      <!-- 图片输出：按图命中型号后，把报价表里的真实产品图摆出来，可复制 / 另存 / 放进聊天记录 -->
+      <div id="outImages" class="out-images hidden">
+        <div class="out-images-head">
+          <b>随稿产品图</b>
+          <span id="outImagesHint" class="hint"></span>
+          <div class="out-images-actions">
+            <button id="btnOutToThread" class="btn btn-sm" title="把这批产品图作为一条我方消息放进上面的聊天记录">放进聊天记录</button>
+          </div>
+        </div>
+        <div id="outImagesGrid" class="out-images-grid"></div>
+        <div class="out-images-tip">这些图来自你自己的报价表（只读提取）。表内价格是出厂价 / 内部价，发给客户前请人工打开来源文件核对对应行；程序不会自动发送任何消息给客户。</div>
+      </div>
+      <div id="confirmWarning" class="confirm-warning hidden">
+        这封回复里有价格 / 交期 / 账期等敏感内容。请对照右侧「中文说明 / 资料来源」核对无误，再勾选最下面的确认框。
+      </div>
+    </section>
+    </div><!-- /work-main -->
+
+    <!-- 右：所有「只给客服看的中文」集中在这里；左边只留客户原话与外文正文 -->
+    <aside class="work-rail" id="workRail">
+      <div class="rail-head">
+        <span><svg class="i"><use href="#i-file"/></svg>中文对照</span>
+        <button id="btnRailToggle" class="rail-toggle" type="button" title="收起 / 展开中文对照栏；收起后左边更宽">收起 ›</button>
+      </div>
+      <div class="rail-scroll">
+        <section class="rail-block rail-customer" id="customerTransBox">
+          <div class="rail-block-head">
+            <span>客户消息 · 中文</span>
+            <button id="btnTranslateCustomer" class="btn btn-sm" type="button" title="把输入框里客户的外文原话翻译成中文">翻译这句</button>
+          </div>
+          <div id="customerTrans" class="rail-body">还没有客户消息。粘贴客户原话后点「生成回复稿」会自动翻译，也可以点「翻译这句」。</div>
+          <div id="customerTransHint" class="rail-hint hidden"></div>
+        </section>
+
+        <section class="rail-block hidden" id="translationBox">
+          <div class="rail-block-head"><span>回复稿 · 中文翻译</span><span class="rail-tag">只给你看</span></div>
+          <div id="translation" class="rail-body"></div>
+        </section>
+
+        <section class="rail-block hidden" id="notesBox">
+          <div class="rail-block-head"><span>中文说明 / 资料来源</span><span class="rail-tag">只给你看</span></div>
+          <div id="notes" class="rail-body"></div>
+        </section>
+
+        <div id="meta" class="rail-block rail-meta hidden"></div>
+        <div id="attachments" class="rail-block hidden"></div>
+        <div id="tools" class="rail-block hidden"></div>
+      </div>
+
+      <!-- 手动中文 → 英文固定在右栏底部，不随上面内容多少上下跑；译文必须点「一键复制」才进剪贴板 -->
+      <div class="rail-foot">
+        <section class="rail-block rail-translate" id="manualTranslateBox">
+          <div class="rail-block-head">
+            <span>手动翻译 · 中文 → 英文</span>
+            <span class="rail-tag">只给你看</span>
+          </div>
+          <textarea id="manualTranslateInput" class="rail-input" rows="3" maxlength="4000" placeholder="输入要发给客户的中文，例如：这款现在有现货，单价 1.5 美元。"></textarea>
+          <div class="rail-translate-actions">
+            <button id="btnManualTranslate" class="btn btn-sm" type="button" title="把上面的中文翻译成英文，只显示在这里">翻译成英文</button>
+            <button id="btnManualCopy" class="btn btn-sm" type="button" title="只复制英文译文到剪贴板，不会自动发送" disabled>一键复制</button>
+          </div>
+          <div id="manualTranslateResult" class="rail-body rail-translate-result placeholder">输入中文后点「翻译成英文」；译文只显示在这里，点「一键复制」才会进剪贴板。</div>
+          <div id="manualTranslateHint" class="rail-hint hidden"></div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <!-- 图文输入区：Ctrl+V 粘贴图片 / 拖入图片 / 点按钮选多张，图片和文字一起成为一条聊天消息 -->
+    <div class="composer" id="composer">
+      <div id="pendingImage" class="composer-images hidden"></div>
+      <textarea id="input" rows="3" placeholder="把客户发来的消息粘贴到这里…（Ctrl+V 可贴图 · 也可直接拖图片进来 · Ctrl+Enter 生成）"></textarea>
+      <div class="composer-tools">
+        <button id="btnPickImage" class="btn btn-image" title="选客户发来的产品图（可多选）；鼠标停在这里可以看资料库已收录的产品图"><svg class="i"><use href="#i-image"/></svg>加图片</button>
+        <span class="composer-hint">Ctrl+V 粘贴 · 拖入图片 · 最多 4 张</span>
+        <span id="imageIndexHint" class="hint">正在检查图片索引…</span>
+        <button id="btnClearImage" class="btn btn-sm hidden" title="移除所有待发送图片">清空图片</button>
+      </div>
+    </div>
+
+    <!-- 本机图片指纹比对候选：型号 / 出厂价 / 来源行号，客服点一下确认采用哪一款 -->
+    <div class="image-bar">
+      <div id="imageMatchMsg" class="image-match-msg hidden"></div>
+      <div id="imageMatches" class="image-matches hidden"></div>
+    </div>
+    <input type="file" id="imageFile" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" multiple class="hidden" />
+
+    <div class="confirm-row">
+      <label class="checkbox"><input type="checkbox" id="confirmBox" /> 我已人工核对价格 / 交期 / 附件来源</label>
+      <span id="sessionLabel" class="hint"></span>
+    </div>
+    <div class="actions">
+      <button id="btnGenerate" class="btn btn-primary">生成回复稿</button>
+      <button id="btnCopy" class="btn" title="只复制发给客户的外文正文，不含中文翻译和注解">只复制正文</button>
+      <button id="btnSend" class="btn btn-send" disabled>复制去发送</button>
+      <button id="btnToWorkBuddy2" class="btn btn-wb"><svg class="i"><use href="#i-external"/></svg>交给 WorkBuddy 写</button>
+    </div>
+    <div id="toast" class="toast hidden"></div>
+  </footer>
+
+  <!-- 鼠标停在「加图片」上：浮层预览资料库里收录的产品图（缩略图由网关内嵌返回，不用鉴权头） -->
+  <div id="imagePopover" class="image-popover hidden">
+    <div class="image-pop-head">
+      <div>
+        <b>我的资料库 · 产品图预览</b>
+        <span id="imagePopStat" class="hint">读取中…</span>
+      </div>
+      <div class="image-pop-actions">
+        <button id="btnImagePrevPage" class="btn btn-sm">上一批</button>
+        <button id="btnImageNextPage" class="btn btn-sm">换一批</button>
+        <button id="btnRebuildImages" class="btn btn-sm">重建图片索引</button>
+      </div>
+    </div>
+    <div id="imagePopTip" class="image-pop-tip">这些缩略图是从报价表里只读提取的；点图可放大，鼠标移开自动收起。</div>
+    <div id="imagePopGrid" class="image-pop-grid"></div>
+  </div>
+  <div id="imageLightbox" class="image-lightbox hidden"><img id="imageLightboxImg" alt="资料库产品图放大" /></div>
+
+  <!-- 资料库 / 话术学习抽屉：默认收起，点顶部工具条按钮才从右侧滑出，用完再点收起 -->
+  <div id="drawerScrim" class="drawer-scrim hidden"></div>
+  <aside id="drawer" class="drawer hidden" aria-hidden="true">
+    <div class="drawer-head">
+      <span id="drawerTitle" class="drawer-title">我的资料库</span>
+      <button id="btnDrawerClose" class="icon-btn" type="button" title="收起" aria-label="收起抽屉"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="drawer-scroll">
+      <section class="drawer-section" id="drawerKb">
+        <div class="drawer-section-head"><svg class="i"><use href="#i-library"/></svg>我的资料库（报价表 / 图片 / 证书）</div>
+        <p class="drawer-note">把报价表、图片、证书直接放进「我的资料库」文件夹，文件名不用改。点一下「整理资料」，程序会读出表里的型号、价格、货期，之后问报价才会真的去你的表里查。原始文件不会被改名、移动或删除。</p>
+        <div class="kb-row">
+          <button id="btnOrganize" class="btn btn-primary btn-sm"><svg class="i"><use href="#i-folder"/></svg>整理资料</button>
+          <button id="btnViewList" class="btn btn-sm"><svg class="i"><use href="#i-file"/></svg>查看清单</button>
+          <button id="btnOpenKb" class="btn btn-sm"><svg class="i"><use href="#i-folder-open"/></svg>打开资料文件夹</button>
+          <label class="kb-force" title="一般不用勾；换过表头或怀疑读错时才用"><input type="checkbox" id="kbForce" /> 强制全部重读</label>
+        </div>
+        <div id="kbMsg" class="kb-msg hidden"></div>
+        <div id="kbSuggest" class="kb-suggest hidden"></div>
+      </section>
+
+      <section class="drawer-section hidden" id="drawerLearn">
+        <div class="drawer-section-head"><svg class="i"><use href="#i-list"/></svg>话术学习</div>
+        <p class="drawer-note">点「记成功」会写进成功案例库；点「记失败」会变成「下次别这么写」的经验。程序自动重新归纳话术，下一次起草回复稿就生效。客户消息和回复稿只存在这台电脑里。</p>
+        <div class="learn-row">
+          <input id="learnNote" type="text" placeholder="（可不填）写一句原因，例如：客户接受了报价 / 报价太高没回" />
+          <button id="btnMarkSuccess" class="btn btn-ok" disabled><svg class="i"><use href="#i-check"/></svg>记成功</button>
+          <button id="btnMarkFailure" class="btn btn-bad" disabled><svg class="i"><use href="#i-x"/></svg>记失败</button>
+        </div>
+        <div class="learn-row">
+          <button id="btnRebuild" class="btn btn-sm"><svg class="i"><use href="#i-refresh"/></svg>重新归纳话术</button>
+          <button id="btnViewScripts" class="btn btn-sm"><svg class="i"><use href="#i-file"/></svg>学到的经验</button>
+          <button id="btnToggleHistory" class="btn btn-sm"><svg class="i"><use href="#i-list"/></svg>学习记录</button>
+        </div>
+        <div id="learnMsg" class="learn-msg hidden"></div>
+        <div id="history" class="history hidden"></div>
+      </section>
+    </div>
+  </aside>
+
+  <script src="./app.js"></script>
+</body>
+</html>

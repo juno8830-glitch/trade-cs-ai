@@ -1,0 +1,100 @@
+# ============================================================
+#  AI 名单（给想换 AI 的人看，新手完全不用动这个文件）
+#
+#  它像一张「通讯录」：每一行记一个 AI 的名字、地址、能做什么。
+#  想接更好的 AI：在「一键启动.bat」里选菜单 5 填密钥就行，不用改这里。
+#  想接一个全新的 AI 服务：照着下面任意一段复制一段，改 3 个地方 ——
+#      ① id（给它起个不重复的名字）
+#      ② endpoint（它的服务地址）
+#      ③ model（模型名字）
+#  然后完全退出程序、重新双击「一键启动.bat」。客户端一行代码都不用改。
+#
+#  几个常见英文的意思：
+#      adapter  = 适配插头（把不同 AI 的方言翻译成统一格式）
+#      scenarios= 这个 AI 擅长哪个客户阶段；'*' 表示什么阶段都能接
+#      priority = 优先级，数字越小越优先被选中
+#      fallback = 这个 AI 连不上时，依次改用谁
+#  密钥不要写在这里！只能写 env:XXX，引用 .env 里的值。
+# ============================================================
+
+router:
+  strategy: weighted_with_health_check   # 选 AI 的策略：先挑优先级高的，再检查它是否健康
+  stickySession: true                    # 同一个会话尽量用同一个 AI，语气风格才一致
+  failoverTimeoutMs: 8000                # 连不上时最多等多久就换下一个（毫秒）
+  healthTtlMs: 10000                     # 健康检查结果缓存 10 秒，避免每次都探活
+  healthTimeoutMs: 800                   # 单次探活超时
+  maxToolRounds: 3                       # AI 最多连续查几次资料，防止死循环
+  requestTimeoutMs: 30000                # 单次请求总超时
+
+agents:
+  # ① 公司自研的 AI 服务（没部署就是「暂不可用」，不影响使用）
+  - id: self-hosted-graph
+    adapter: custom_langgraph
+    endpoint: http://10.0.0.21:8000/invoke
+    healthUrl: http://10.0.0.21:8000/health
+    apiKeyRef: env:LANGGRAPH_TOKEN
+    capabilities: { streaming: true, toolCalling: true, vision: true, contextWindow: 64000 }
+    route: { scenarios: [complex_quote], weight: 100, priority: 0 }
+    fallback: [bailian-qwen, builtin-offline]
+
+  # ② 智谱 GLM / BigModel（国内常用；在菜单 5 → 2 填密钥后自动生效，不用改这个文件）
+  #    智谱的密钥是「一串数字.一串字母」的样子，和 OpenAI 的 sk- 开头不一样，
+  #    所以必须走下面这个专用地址，不能填到「OpenAI / 第三方」那一栏去。
+  - id: zhipu-glm
+    adapter: openai_compatible
+    endpoint: https://open.bigmodel.cn/api/paas/v4
+    apiKeyRef: env:ZHIPU_API_KEY
+    model: glm-4.5-air            # 想换更强的模型：在 .env 里写 ZHIPU_MODEL=glm-4.6，重启即可
+    modelEnv: ZHIPU_MODEL
+    capabilities: { streaming: true, toolCalling: true, vision: false, contextWindow: 128000 }
+    route: { scenarios: [promote, negotiate, followup, complex_quote, draft_only, '*'], weight: 100, priority: 0 }
+    fallback: [bailian-qwen, builtin-offline]
+
+  # ③ 阿里云百炼 / 通义千问（国内常用；在菜单 5 填密钥后自动生效）
+  - id: bailian-qwen
+    adapter: openai_compatible
+    endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
+    apiKeyRef: env:DASHSCOPE_API_KEY
+    model: qwen-max
+    capabilities: { streaming: true, toolCalling: true, vision: true, contextWindow: 128000 }
+    route: { scenarios: [promote, negotiate, followup, complex_quote, draft_only, '*'], weight: 70, priority: 1 }
+    fallback: [local-llama, builtin-offline]
+
+  # ④ OpenAI 或其他「兼容 OpenAI 格式」的第三方服务
+  #    默认地址是 api.openai.com。若你用的是别家（DeepSeek / Kimi / 自建代理等），
+  #    在 .env 里加两行就能换：OPENAI_COMPAT_ENDPOINT=对方给的地址
+  #                            OPENAI_COMPAT_MODEL=对方给的模型名
+  - id: openai-thirdparty
+    adapter: openai_compatible
+    endpoint: https://api.openai.com/v1
+    endpointEnv: OPENAI_COMPAT_ENDPOINT
+    apiKeyRef: env:OPENAI_COMPAT_API_KEY
+    model: gpt-4o
+    modelEnv: OPENAI_COMPAT_MODEL
+    capabilities: { streaming: true, toolCalling: true, vision: true, contextWindow: 128000 }
+    route: { scenarios: [negotiate, '*'], weight: 30, priority: 2 }
+    fallback: [bailian-qwen, builtin-offline]
+
+  # ④ 本机免费模型 Ollama（装好并保持运行即可自动被发现，断网也能用）
+  - id: local-llama
+    adapter: openai_compatible
+    endpoint: http://127.0.0.1:11434/v1
+    apiKeyRef: env:OLLAMA_KEY          # Ollama 无需密钥，留空即可
+    apiKeyOptional: true
+    model: llama3.1:8b
+    capabilities: { streaming: true, toolCalling: false, vision: false, contextWindow: 32000 }
+    route: { scenarios: [draft_only, '*'], weight: 30, priority: 3 }
+    fallback: [builtin-offline]
+
+  # ⑤ 演示「加一个 AI 不用改代码」：复用已有插头，只在这里加一段就能被选中
+  - id: offline-draft
+    adapter: builtin_offline
+    capabilities: { streaming: true, toolCalling: true, vision: false, contextWindow: 8000 }
+    route: { scenarios: [draft_only], weight: 100, priority: 0 }
+
+  # ⑥ 最后的兜底：不需要联网、不需要密钥，永远可用。
+  #    请把这一段留在最后，删掉它的话，所有 AI 都挂掉时客服就没法用了。
+  - id: builtin-offline
+    adapter: builtin_offline
+    capabilities: { streaming: true, toolCalling: true, vision: false, contextWindow: 8000 }
+    route: { scenarios: ['*'], weight: 0, priority: 99 }

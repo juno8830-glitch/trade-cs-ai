@@ -1,0 +1,37 @@
+{
+  "name": "trade-cs-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "launch": "node scripts/start.js",
+    "dev": "npm run dev -w @trade-cs-ai/gateway",
+    "dev:desktop": "npm run dev -w @trade-cs-ai/desktop",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "seed": "tsx scripts/seed.ts",
+    "import:cases": "tsx scripts/import-cases.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "organize:library": "tsx scripts/organize-library.ts",
+    "build:images": "tsx scripts/build-image-index.ts",
+    "check:image-border": "tsx scripts/check-image-border.ts",
+    "connect:workbuddy": "node scripts/connect-workbuddy.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "ws": "^8.18.0",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  }
+}
